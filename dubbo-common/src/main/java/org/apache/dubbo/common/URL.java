@@ -111,6 +111,14 @@ import static org.apache.dubbo.common.utils.StringUtils.isBlank;
  * @see java.net.URL
  * @see java.net.URI
  */
+// 这里其实是URL的封装
+// dubbo://172.17.32.91:20880/
+// org.apache.dubbo.demo.DemoService?anyhost=true
+// &application=dubbo-demo-api-provider&dubbo=2.0.2
+// &interface=org.apache.dubbo.demo.DemoService
+// &methods=sayHello,sayHelloAsync
+// &pid=32508&release=&side=provider
+// &timestamp=1593253404714dubbo://172.17.32.91:20880/org.apache.dubbo.demo.DemoService?anyhost=true&application=dubbo-demo-api-provider&dubbo=2.0.2&interface=org.apache.dubbo.demo.DemoService&methods=sayHello,sayHelloAsync&pid=32508&release=&side=provider&timestamp=1593253404714
 public /*final**/
 class URL implements Serializable {
 
@@ -180,6 +188,7 @@ class URL implements Serializable {
         this(protocol, username, password, host, port, path, CollectionUtils.toStringMap(pairs));
     }
 
+
     public URL(String protocol,
                String username,
                String password,
@@ -197,6 +206,17 @@ class URL implements Serializable {
         this.attributes = null;
     }
 
+    /**
+     *
+     * @param protocol  dubbo协议
+     * @param username  没有
+     * @param password  没有
+     * @param host  IP
+     * @param port  端口
+     * @param path  服务
+     * @param parameters  参数键值对
+     * @param modifiable
+     */
     protected URL(String protocol,
                   String username,
                   String password,

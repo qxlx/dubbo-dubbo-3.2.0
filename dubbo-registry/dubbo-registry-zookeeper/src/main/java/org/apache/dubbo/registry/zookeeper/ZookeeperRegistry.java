@@ -154,6 +154,10 @@ public class ZookeeperRegistry extends CacheableFailbackRegistry {
         }
     }
 
+    /**
+     * provider注册服务
+     * @param url
+     */
     @Override
     public void doRegister(URL url) {
         try {
@@ -174,6 +178,11 @@ public class ZookeeperRegistry extends CacheableFailbackRegistry {
         }
     }
 
+    /**
+     * consumer订阅服务
+     * @param url
+     * @param listener
+     */
     @Override
     public void doSubscribe(final URL url, final NotifyListener listener) {
         try {

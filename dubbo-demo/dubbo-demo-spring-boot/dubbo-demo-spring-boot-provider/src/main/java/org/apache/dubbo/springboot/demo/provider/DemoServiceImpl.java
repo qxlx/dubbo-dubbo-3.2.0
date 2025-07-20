@@ -31,8 +31,12 @@ public class DemoServiceImpl implements DemoService {
     public String sayHello(String name) {
         logger.info("Hello " + name + ", request from consumer: " + RpcContext.getContext().getRemoteAddress());
         return "Hello " + name;
-
     }
 
+    @Override
+    public String registerUser(String name) {
+        logger.info("注册成功:{}", name);
+        return name + "\tregisterUser success";
+    }
 
 }

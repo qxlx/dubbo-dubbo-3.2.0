@@ -59,6 +59,9 @@ public class FixedThreadPool implements ThreadPool {
             blockingQueue = new LinkedBlockingQueue<>(queues);
         }
 
+        // 线程池数量 核心和最大相等
+        // queue 根据参数不同选择不同实现
+        // 自定义拒绝策略
         return new ThreadPoolExecutor(threads, threads, 0, TimeUnit.MILLISECONDS, blockingQueue,
                 new NamedInternalThreadFactory(name, true), new AbortPolicyWithReport(name, url));
     }

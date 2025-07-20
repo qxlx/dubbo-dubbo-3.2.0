@@ -37,9 +37,15 @@ public class ConsumerApplication {
 
         ConfigurableApplicationContext context = SpringApplication.run(ConsumerApplication.class, args);
         ConsumerApplication application = context.getBean(ConsumerApplication.class);
-        String result = application.doSayHello("world");
+        String result = application.registerUser("qxlx");
         System.out.println("result: " + result);
+
     }
+
+    public String registerUser(String name) {
+        return demoService.registerUser(name);
+    }
+
 
     public String doSayHello(String name) {
         return demoService.sayHello(name);

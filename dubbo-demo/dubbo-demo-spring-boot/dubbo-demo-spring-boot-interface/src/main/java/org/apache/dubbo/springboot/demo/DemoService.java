@@ -26,4 +26,5 @@ public interface DemoService {
         return CompletableFuture.completedFuture(sayHello(name));
     }
 
+    String registerUser(String name);
 }
