@@ -33,6 +33,7 @@ import static org.apache.dubbo.rpc.Constants.EXECUTES_KEY;
 
 
 /**
+ * 服务提供者:限制服务并发执行请求数量
  * The maximum parallel execution request count per method per service for the provider.If the max configured
  * <b>executes</b> is set to 10 and if invoke request where it is already 10 then it will throw exception. It
  * continues the same behaviour un till it is <10.

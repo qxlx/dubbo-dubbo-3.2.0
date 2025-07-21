@@ -28,6 +28,7 @@ import org.apache.dubbo.rpc.RpcException;
 import static org.apache.dubbo.rpc.Constants.$ECHO;
 
 /**
+ * 勇于测试 检测服务是否可用
  * Dubbo provided default Echo echo service, which is available for all dubbo provider service interface.
  */
 @Activate(group = CommonConstants.PROVIDER, order = -110000)

@@ -36,6 +36,8 @@ import static org.apache.dubbo.common.constants.LoggerCodeConstants.CONFIG_FILTE
 
 
 /**
+ * 处理服务异常的
+ *
  * ExceptionInvokerFilter
  * <p>
  * Functions:
@@ -44,6 +46,7 @@ import static org.apache.dubbo.common.constants.LoggerCodeConstants.CONFIG_FILTE
  * exception not declared on the interface</li>
  * <li>Wrap the exception not introduced in API package into RuntimeException. Framework will serialize the outer exception but stringnize its cause in order to avoid of possible serialization problem on client side</li>
  * </ol>
+ *
  */
 @Activate(group = CommonConstants.PROVIDER)
 public class ExceptionFilter implements Filter, Filter.Listener {

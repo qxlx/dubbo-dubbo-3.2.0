@@ -58,6 +58,7 @@ import static org.apache.dubbo.common.constants.LoggerCodeConstants.CONFIG_FILTE
 import static org.apache.dubbo.rpc.Constants.GENERIC_KEY;
 
 /**
+ * 支持泛化调用 允许调用放不具备服务接口的进行服务调用
  * GenericInvokerFilter.
  */
 @Activate(group = CommonConstants.PROVIDER, order = -20000)

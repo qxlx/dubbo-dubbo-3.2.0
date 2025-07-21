@@ -29,6 +29,7 @@ import static org.apache.dubbo.common.constants.CommonConstants.STAGED_CLASSLOAD
 import static org.apache.dubbo.common.constants.CommonConstants.WORKING_CLASSLOADER_KEY;
 
 /**
+ * 使用正确的类加载器
  * Set the current execution thread class loader to service interface's class loader.
  */
 @Activate(group = CommonConstants.PROVIDER, order = -30000)
