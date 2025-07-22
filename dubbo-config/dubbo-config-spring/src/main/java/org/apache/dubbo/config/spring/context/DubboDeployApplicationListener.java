@@ -42,6 +42,9 @@ import org.springframework.context.event.ContextRefreshedEvent;
 import org.springframework.core.Ordered;
 
 /**
+ * 🤔: DubboDeployApplicationListener 是什么加载到Spring容器的? 要不发布事件如何监听到以及后续动作
+ *
+ * spring上下文事件处理启动之后 通过事件机制触发
  * An ApplicationListener to control Dubbo application.
  */
 public class DubboDeployApplicationListener implements ApplicationListener<ApplicationContextEvent>, ApplicationContextAware, Ordered {
@@ -95,26 +98,39 @@ public class DubboDeployApplicationListener implements ApplicationListener<Appli
         applicationContext.publishEvent(new DubboApplicationStateEvent(applicationModel, state, cause));
     }
 
+    /**
+     * spring 上下文事件处理
+     * @param event the event to respond to
+     */
     @Override
     public void onApplicationEvent(ApplicationContextEvent event) {
+        // 如果事件源是当前spring上下文 处理事件
         if (nullSafeEquals(applicationContext, event.getSource())) {
+            // 如果是刷新事件
             if (event instanceof ContextRefreshedEvent) {
+                // 处理上下文刷新事件
                 onContextRefreshedEvent((ContextRefreshedEvent) event);
             } else if (event instanceof ContextClosedEvent) {
+                // 关闭事件 处理关闭事件
                 onContextClosedEvent((ContextClosedEvent) event);
             }
         }
     }
 
     private void onContextRefreshedEvent(ContextRefreshedEvent event) {
+        // 获取模块部署器
         ModuleDeployer deployer = moduleModel.getDeployer();
         Assert.notNull(deployer, "Module deployer is null");
         // start module
+        // 启动部署器
         Future future = deployer.start();
 
         // if the module does not start in background, await finish
+        // 说白就是看是否后台启动,如果不是的话 需要等待执行部署器后 才可以后续操作
+        // 否则的话异步起动
         if (!deployer.isBackground()) {
             try {
+                // 等待部署启动执行完毕
                 future.get();
             } catch (InterruptedException e) {
                 logger.warn(CONFIG_FAILED_START_MODEL, "", "", "Interrupted while waiting for dubbo module start: " + e.getMessage());

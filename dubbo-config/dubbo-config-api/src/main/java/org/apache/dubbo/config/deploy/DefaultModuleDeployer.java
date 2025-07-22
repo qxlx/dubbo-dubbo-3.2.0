@@ -134,54 +134,88 @@ public class DefaultModuleDeployer extends AbstractDeployer<ModuleModel> impleme
         }
     }
 
+    /**
+     * 启动模块部署器
+     * @return
+     * @throws IllegalStateException
+     */
     @Override
     public Future start() throws IllegalStateException {
         // initialize，maybe deadlock applicationDeployer lock & moduleDeployer lock
+        // 初始化阶段 可能出现应用部署器的锁和模块部署器的锁 出现死锁的情况
+        // 应用部署器初始化
         applicationDeployer.initialize();
 
+        // 启动默认的模块部署器
         return startSync();
     }
 
     private synchronized Future startSync() throws IllegalStateException {
+        // 停止 或者 停止中 或 启动失败 不在启动  基本的check
         if (isStopping() || isStopped() || isFailed()) {
             throw new IllegalStateException(getIdentifier() + " is stopping or stopped, can not start again");
         }
 
         try {
+            // 在启动和启动中 不在启动
             if (isStarting() || isStarted()) {
                 return startFuture;
             }
 
+            // 启动模块启动事件
+            // 当部署器启动的时候 设置部署器状态 正在启动
+            // 调用应用部署器的方法通知模块状态更改事件  传递的参数 1.模块参数 2.目标状态
             onModuleStarting();
 
-
+            // 初始化模块部署器
             initialize();
 
             // export services
+            // 服务暴露
             exportServices();
 
             // prepare application instance
             // exclude internal module to avoid wait itself
+
+            // 准备应用实例
+            // 将内部模块排除在外 避免等待
+            // 如果模块模型不是内部模块模型
             if (moduleModel != moduleModel.getApplicationModel().getInternalModule()) {
+                // 如果内部模块准备好 直接返回
+                // 如果没有初始化 加lock 没有准备好 通过应用模型获取内部模块 通过内部模块模型获取模块的部署器
+                // 启动部署器，等待模块模型部署器启动的完成，设置标志
                 applicationDeployer.prepareInternalModule();
             }
 
             // refer services
+            // 引用服务
             referServices();
 
             // if no async export/refer services, just set started
+            // 如果没有异步的导出/引用服务，则设置部署器的状态为已启动
             if (asyncExportingFutures.isEmpty() && asyncReferringFutures.isEmpty()) {
+                // 如果模块状态是正在启动，则设置为已启动，同时使用应用部署器通知模块状态变化，
+                // 参数：1. 模块模型，2. 模块模型的目标状态：已启动
+                // 当应用状态修改后，完成模块启动的future
                 onModuleStarted();
             } else {
+                // 说明存在有异步的导出 索引引入线程池异步处理
+                //
                 frameworkExecutorRepository.getSharedExecutor().submit(() -> {
                     try {
                         // wait for export finish
+                        // 同步等待所有导出future的完成，完成后，清空异步导出future集合
                         waitExportFinish();
                         // wait for refer finish
+                        // 同步等待所有引用操作的future的完成，完成后，清空asyncReferringFutures集合
                         waitReferFinish();
                     } catch (Throwable e) {
                         logger.warn(CONFIG_FAILED_WAIT_EXPORT_REFER, "", "", "wait for export/refer services occurred an exception", e);
                     } finally {
+                        // 处理模块已启动完成事件
+                        // 如果模块状态是正在启动，则设置为已启动，同时使用应用部署器通知模块状态变化，
+                        // 参数：1. 模块模型，2. 模块模型的目标状态：已启动
+                        // 当应用状态修改后，完成模块启动的future
                         onModuleStarted();
                     }
                 });
@@ -330,8 +364,16 @@ public class DefaultModuleDeployer extends AbstractDeployer<ModuleModel> impleme
         moduleModel.getConfigManager().refreshAll();
     }
 
+    /**
+     * 服务导出
+     * 其实就是便利获取@DubboService注解的类
+     */
     private void exportServices() {
+        // 遍历配置管理器的服务集合
+        // 对于spring而言，配置文件中的一个dubbo的service标签对应一个服务配置ServiceConfigBase对象
+        // 如：<dubbo:service interface="xxx" ref="yyy" />
         for (ServiceConfigBase sc : configManager.getServices()) {
+            // 通过内部方式导出服务,传递服务配置对象
             exportServiceInternal(sc);
         }
     }
