@@ -117,6 +117,7 @@ public class DubboDeployApplicationListener implements ApplicationListener<Appli
         }
     }
 
+    // 框架模型 应用模型 模块模型
     private void onContextRefreshedEvent(ContextRefreshedEvent event) {
         // 获取模块部署器
         ModuleDeployer deployer = moduleModel.getDeployer();

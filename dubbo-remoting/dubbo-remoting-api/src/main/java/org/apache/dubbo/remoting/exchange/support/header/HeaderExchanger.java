@@ -49,6 +49,7 @@ public class HeaderExchanger implements Exchanger {
         if(isPuServerKey) {
             server = new HeaderExchangeServer(PortUnificationExchanger.bind(url, new DecodeHandler(new HeaderExchangeHandler(handler))));
         }else {
+            // Bind方法调用
             server = new HeaderExchangeServer(Transporters.bind(url, new DecodeHandler(new HeaderExchangeHandler(handler))));
         }
         return server;

@@ -211,42 +211,58 @@ public class ServiceConfig<T> extends ServiceConfigBase<T> {
 
     /**
      * for early init serviceMetadata
+     * 1.CAS操作
+     * 2.通过SPI机制获取服务监听器类型.添加起来
      */
     public void init() {
+        // CAS操作
         if (this.initialized.compareAndSet(false, true)) {
             // load ServiceListeners from extension
+            // SPI机制
             ExtensionLoader<ServiceListener> extensionLoader = this.getExtensionLoader(ServiceListener.class);
             this.serviceListeners.addAll(extensionLoader.getSupportedExtensionInstances());
         }
+        // 初始化服务元数据
         initServiceMetadata(provider);
+        // 设置接口类型
         serviceMetadata.setServiceType(getInterfaceClass());
+        // 服务接口的实现类
         serviceMetadata.setTarget(getRef());
+        // 生成服务的keu
         serviceMetadata.generateServiceKey();
     }
 
+    /**
+     * 服务导出
+     */
     @Override
     public void export() {
+        // 如果服务已经导出, 则直接返回
         if (this.exported) {
             return;
         }
 
         // ensure start module, compatible with old api usage
+        // 启动模块部署器
         getScopeModel().getDeployer().start();
 
         synchronized (this) {
+            // 双检查
             if (this.exported) {
                 return;
             }
-
+            // 没有刷新进行刷新
             if (!this.isRefreshed()) {
                 this.refresh();
             }
             if (this.shouldExport()) {
+                // 服务初始化
                 this.init();
-
+                // 不延迟
                 if (shouldDelay()) {
                     doDelayExport();
                 } else {
+                    // 直接导出 ⭐️
                     doExport();
                 }
             }
@@ -385,17 +401,21 @@ public class ServiceConfig<T> extends ServiceConfigBase<T> {
     }
 
     protected synchronized void doExport() {
+        // 执行过程中 取消导出 直接抛异常
         if (unexported) {
             throw new IllegalStateException("The service " + interfaceClass.getName() + " has already unexported!");
         }
+        // 已经导出 直接返回
         if (exported) {
             return;
         }
-
+        // 服务路径是空 直接用接口的全限定类名
         if (StringUtils.isEmpty(path)) {
             path = interfaceName;
         }
+        // ⭐️ 导出URL
         doExportUrls();
+        // 标记下
         exported();
     }
 
@@ -408,6 +428,7 @@ public class ServiceConfig<T> extends ServiceConfigBase<T> {
             serviceDescriptor = ((ServerService) ref).getServiceDescriptor();
             repository.registerService(serviceDescriptor);
         } else {
+            // 注册服务
             serviceDescriptor = repository.registerService(getInterfaceClass());
         }
         providerModel = new ProviderModel(serviceMetadata.getServiceKey(),
@@ -422,6 +443,8 @@ public class ServiceConfig<T> extends ServiceConfigBase<T> {
         providerModel.setDestroyRunner(getDestroyRunner());
         repository.registerProvider(providerModel);
 
+        // 加载注册中心的信息
+        // 注册中心的URL
         List<URL> registryURLs = ConfigValidationUtils.loadRegistries(this, true);
 
         MetricsEventBus.post(RegistryEvent.toRsEvent(module.getApplicationModel(), getUniqueServiceName(), protocols.size() * registryURLs.size()),
@@ -435,6 +458,7 @@ public class ServiceConfig<T> extends ServiceConfigBase<T> {
                         // In case user specified path, register service one more time to map it to path.
                         repository.registerService(pathKey, interfaceClass);
                     }
+                    // ⭐️  通过协议导出URL  远程注册中心发送注册请求
                     doExportUrlsFor1Protocol(protocolConfig, registryURLs);
                 }
                 return null;
@@ -452,6 +476,7 @@ public class ServiceConfig<T> extends ServiceConfigBase<T> {
         // init serviceMetadata attachments
         serviceMetadata.getAttachments().putAll(map);
 
+        // 服务URL
         URL url = buildUrl(protocolConfig, map);
 
         processServiceExecutor(url);
@@ -663,7 +688,7 @@ public class ServiceConfig<T> extends ServiceConfigBase<T> {
                         removeParameter("ext.protocol").
                         build();
                 }
-
+                // 远程发布
                 url = exportRemote(url, registryURLs);
                 if (!isGeneric(generic) && !getScopeModel().isInternal()) {
                     MetadataUtils.publishServiceDefinition(url, providerModel.getServiceModel(), getApplicationModel());
@@ -722,7 +747,7 @@ public class ServiceConfig<T> extends ServiceConfigBase<T> {
                         logger.info("Export dubbo service " + interfaceClass.getName() + " to url " + url);
                     }
                 }
-
+                // 执行导出 服务发布 ⭐️
                 doExportUrl(registryURL.putAttribute(EXPORT_KEY, url), true);
             }
 

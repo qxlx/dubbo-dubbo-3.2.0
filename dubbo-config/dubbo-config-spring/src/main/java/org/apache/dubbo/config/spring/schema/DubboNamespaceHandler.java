@@ -48,6 +48,7 @@ import org.w3c.dom.Element;
 public class DubboNamespaceHandler extends NamespaceHandlerSupport implements ConfigurableSourceBeanMetadataElement {
     @Override
     public void init() {
+        // 加载基本配置信息
         registerBeanDefinitionParser("application", new DubboBeanDefinitionParser(ApplicationConfig.class));
         registerBeanDefinitionParser("module", new DubboBeanDefinitionParser(ModuleConfig.class));
         registerBeanDefinitionParser("registry", new DubboBeanDefinitionParser(RegistryConfig.class));
@@ -60,6 +61,7 @@ public class DubboNamespaceHandler extends NamespaceHandlerSupport implements Co
         registerBeanDefinitionParser("provider", new DubboBeanDefinitionParser(ProviderConfig.class));
         registerBeanDefinitionParser("consumer", new DubboBeanDefinitionParser(ConsumerConfig.class));
         registerBeanDefinitionParser("protocol", new DubboBeanDefinitionParser(ProtocolConfig.class));
+        // 业务流程处理
         registerBeanDefinitionParser("service", new DubboBeanDefinitionParser(ServiceBean.class));
         registerBeanDefinitionParser("reference", new DubboBeanDefinitionParser(ReferenceBean.class));
         registerBeanDefinitionParser("annotation", new AnnotationBeanDefinitionParser());

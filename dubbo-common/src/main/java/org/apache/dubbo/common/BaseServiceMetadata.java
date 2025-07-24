@@ -34,6 +34,7 @@ public class BaseServiceMetadata {
     private ServiceModel serviceModel;
 
     public static String buildServiceKey(String path, String group, String version) {
+        // 先统计长度
         int length = path == null ? 0 : path.length();
         length += group == null ? 0 : group.length();
         length += version == null ? 0 : version.length();

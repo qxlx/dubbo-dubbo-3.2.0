@@ -297,9 +297,11 @@ public class DefaultModuleDeployer extends AbstractDeployer<ModuleModel> impleme
     }
 
     private void onModuleStarting() {
+        // 设置状态 正在启动
         setStarting();
         startFuture = new CompletableFuture();
         logger.info(getIdentifier() + " is starting.");
+        // 通知更改事件
         applicationDeployer.notifyModuleChanged(moduleModel, DeployState.STARTING);
     }
 
@@ -379,13 +381,18 @@ public class DefaultModuleDeployer extends AbstractDeployer<ModuleModel> impleme
     }
 
     private void exportServiceInternal(ServiceConfigBase sc) {
+        // 类型转换
         ServiceConfig<?> serviceConfig = (ServiceConfig<?>) sc;
+        // 如果没有刷新 进行刷新操作
         if (!serviceConfig.isRefreshed()) {
             serviceConfig.refresh();
         }
+
+        // 已经导出 直接返回
         if (sc.isExported()) {
             return;
         }
+        // 这里不是异步处理的
         if (exportAsync || sc.shouldExportAsync()) {
             ExecutorService executor = executorRepository.getServiceExportExecutor();
             CompletableFuture<Void> future = CompletableFuture.runAsync(() -> {
@@ -402,6 +409,7 @@ public class DefaultModuleDeployer extends AbstractDeployer<ModuleModel> impleme
             asyncExportingFutures.add(future);
         } else {
             if (!sc.isExported()) {
+                // 导出
                 sc.export();
                 exportedServices.add(sc);
             }

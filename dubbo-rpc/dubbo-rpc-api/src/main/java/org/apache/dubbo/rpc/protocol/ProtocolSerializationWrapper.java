@@ -41,9 +41,11 @@ public class ProtocolSerializationWrapper implements Protocol {
         return protocol.getDefaultPort();
     }
 
+    // 框架模型 应用模型 模块模型
     @Override
     public <T> Exporter<T> export(Invoker<T> invoker) throws RpcException {
         getFrameworkModel(invoker.getUrl().getScopeModel()).getBeanFactory().getBean(PermittedSerializationKeeper.class).registerService(invoker.getUrl());
+        // 执行服务的导出
         return protocol.export(invoker);
     }
 
