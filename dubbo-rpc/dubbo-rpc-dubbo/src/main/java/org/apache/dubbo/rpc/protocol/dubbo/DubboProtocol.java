@@ -306,6 +306,7 @@ public class DubboProtocol extends AbstractProtocol {
 
     @Override
     public <T> Exporter<T> export(Invoker<T> invoker) throws RpcException {
+        // 检查协议是否被销毁, 如果被销毁 异常
         checkDestroyed();
         URL url = invoker.getUrl();
 
@@ -326,8 +327,9 @@ public class DubboProtocol extends AbstractProtocol {
 
             }
         }
-
+        // 开启服务
         openServer(url);
+        // 优化序列化
         optimizeSerialization(url);
 
         return exporter;
@@ -346,6 +348,7 @@ public class DubboProtocol extends AbstractProtocol {
                 synchronized (this) {
                     server = serverMap.get(key);
                     if (server == null) {
+                        // 创建服务端
                         serverMap.put(key, createServer(url));
                         return;
                     }
@@ -390,6 +393,7 @@ public class DubboProtocol extends AbstractProtocol {
             throw new RpcException("Unsupported client type: " + transporter);
         }
 
+        // 创建服务端dubbo协议
         DubboProtocolServer protocolServer = new DubboProtocolServer(server);
         loadServerProperties(protocolServer);
         return protocolServer;

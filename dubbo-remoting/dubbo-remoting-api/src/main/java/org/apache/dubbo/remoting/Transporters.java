@@ -45,6 +45,7 @@ public class Transporters {
         } else {
             handler = new ChannelHandlerDispatcher(handlers);
         }
+        // 通过url获取Transporter，执行服务器对IP地址和端口号的绑定，启动服务端。
         return getTransporter(url).bind(url, handler);
     }
 

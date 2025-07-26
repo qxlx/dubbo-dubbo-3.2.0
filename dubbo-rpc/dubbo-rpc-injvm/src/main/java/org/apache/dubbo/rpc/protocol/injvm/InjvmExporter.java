@@ -35,6 +35,9 @@ public class InjvmExporter<T> extends AbstractExporter<T> {
         super(invoker);
         this.key = key;
         this.exporterMap = exporterMap;
+        // 导入到本地缓存
+        // 导入本地 但是没有任何的外部引用使用 为啥 🤔
+        // 将生成的 Invoker 代理类缓存到了 InjvmProtocol 中的 exporterMap 成员变量中。
         exporterMap.put(key, this);
     }
 

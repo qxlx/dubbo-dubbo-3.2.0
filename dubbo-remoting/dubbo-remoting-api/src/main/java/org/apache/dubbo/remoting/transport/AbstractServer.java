@@ -63,9 +63,11 @@ public abstract class AbstractServer extends AbstractEndpoint implements Remotin
         if (url.getParameter(ANYHOST_KEY, false) || NetUtils.isInvalidLocalHost(bindIp)) {
             bindIp = ANYHOST_VALUE;
         }
+        // 设置服务端绑到本地的IP地址和端口号
         bindAddress = new InetSocketAddress(bindIp, bindPort);
         this.accepts = url.getParameter(ACCEPTS_KEY, DEFAULT_ACCEPTS);
         try {
+            // 打开服务端
             doOpen();
             if (logger.isInfoEnabled()) {
                 logger.info("Start " + getClass().getSimpleName() + " bind " + getBindAddress() + ", export " + getLocalAddress());

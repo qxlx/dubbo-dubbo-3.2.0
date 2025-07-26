@@ -81,6 +81,8 @@ public class NettyServer extends AbstractServer {
     public NettyServer(URL url, ChannelHandler handler) throws RemotingException {
         // you can customize name and type of client thread pool by THREAD_NAME_KEY and THREAD_POOL_KEY in CommonConstants.
         // the handler will be wrapped: MultiMessageHandler->HeartbeatHandler->handler
+        // 可以通过THREAD_NAME_KEY和THREAD_POOL_KEY指定客户端线程池的名称和类型。
+        // MultiMessageHandler封装HeartbeatHandler，HeartbeatHandler封装handler。
         super(url, ChannelHandlers.wrap(handler, url));
 
         // read config before destroy
@@ -105,6 +107,7 @@ public class NettyServer extends AbstractServer {
         initServerBootstrap(nettyServerHandler);
 
         // bind
+        // 异步执行服务端的启动。
         ChannelFuture channelFuture = bootstrap.bind(getBindAddress());
         channelFuture.syncUninterruptibly();
         channel = channelFuture.channel();

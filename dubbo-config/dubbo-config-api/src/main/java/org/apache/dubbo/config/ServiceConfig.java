@@ -233,7 +233,7 @@ public class ServiceConfig<T> extends ServiceConfigBase<T> {
     }
 
     /**
-     * 服务导出
+     * 服务导出 针对的是每个单独的servie,上层通过遍历的方式.
      */
     @Override
     public void export() {
@@ -420,33 +420,46 @@ public class ServiceConfig<T> extends ServiceConfigBase<T> {
     }
 
     @SuppressWarnings({"unchecked", "rawtypes"})
+    // 执行URL的导出
     private void doExportUrls() {
+        // 获取范围模型 通过范围模型获取服务仓库
         ModuleServiceRepository repository = getScopeModel().getServiceRepository();
         ServiceDescriptor serviceDescriptor;
         final boolean serverService = ref instanceof ServerService;
+        // 是否是服务端服务
         if (serverService) {
+            // 获取服务描述符
             serviceDescriptor = ((ServerService) ref).getServiceDescriptor();
+            // 通过仓库注册服务 其实就是注册本地的list容器中
             repository.registerService(serviceDescriptor);
         } else {
             // 注册服务
+            // 一个serviceConfig.对象应对一个服务接口
             serviceDescriptor = repository.registerService(getInterfaceClass());
         }
-        providerModel = new ProviderModel(serviceMetadata.getServiceKey(),
-            ref,
-            serviceDescriptor,
-            getScopeModel(),
-            serviceMetadata, interfaceClassLoader);
+        // 创建providerModel
+        providerModel = new ProviderModel(serviceMetadata.getServiceKey(), // 服务key
+            ref, // 服务接口实现bean
+            serviceDescriptor, // 服务描述符
+            getScopeModel(), // 范围模型
+            serviceMetadata, interfaceClassLoader); // 服务元数据,接口类加载器
 
         // Compatible with dependencies on ServiceModel#getServiceConfig(), and will be removed in a future version
+        // 模型设置当前对象
         providerModel.setConfig(this);
 
+        // 设置销毁任务
         providerModel.setDestroyRunner(getDestroyRunner());
+        // 注册providerModel 模型
         repository.registerProvider(providerModel);
 
         // 加载注册中心的信息
         // 注册中心的URL
+        // 可能存在多协议的场景
+        // <dubbo:registry address="" protocol="" port="" /> 对应一个条目
         List<URL> registryURLs = ConfigValidationUtils.loadRegistries(this, true);
 
+        // 发布服务注册的事件
         MetricsEventBus.post(RegistryEvent.toRsEvent(module.getApplicationModel(), getUniqueServiceName(), protocols.size() * registryURLs.size()),
             () -> {
                 for (ProtocolConfig protocolConfig : protocols) {
@@ -464,11 +477,12 @@ public class ServiceConfig<T> extends ServiceConfigBase<T> {
                 return null;
             }
         );
-
+        // 将服务发布的URL保存在providerModel中
         providerModel.setServiceUrls(urls);
     }
 
     private void doExportUrlsFor1Protocol(ProtocolConfig protocolConfig, List<URL> registryURLs) {
+        // 根据协议配置 构建属性集合
         Map<String, String> map = buildAttributes(protocolConfig);
 
         // remove null key and null value
@@ -478,9 +492,11 @@ public class ServiceConfig<T> extends ServiceConfigBase<T> {
 
         // 服务URL
         URL url = buildUrl(protocolConfig, map);
-
+        // 对线程池进行处理 如果线程池模式是"isolation"，则方法返回。
+        // 将线程池作为provider模型的属性添加到服务元数据中："service-executor"->线程池
+        // 将线程池作为url的属性添加到url的属性集合中："service-executor"->线程池
         processServiceExecutor(url);
-
+        // 单接口协议导出到多个注册中心上
         exportUrl(url, registryURLs);
     }
 
@@ -665,13 +681,23 @@ public class ServiceConfig<T> extends ServiceConfigBase<T> {
         return url;
     }
 
+    /**
+     * 本方法其实就是通过参数 scope进行决定的,
+     * 1.scope = null  会本地导出 也会远程导出
+     * 2.scope = local  只本地导出
+     * 3.scope = remote  只远程导出
+     * @param url
+     * @param registryURLs
+     */
     private void exportUrl(URL url, List<URL> registryURLs) {
+        // 获取url的作用范围
         String scope = url.getParameter(SCOPE_KEY);
         // don't export when none is configured
         if (!SCOPE_NONE.equalsIgnoreCase(scope)) {
 
             // export to local if the config is not remote (export to remote only when config is remote)
             if (!SCOPE_REMOTE.equalsIgnoreCase(scope)) {
+                // 本地导出
                 exportLocal(url);
             }
 
@@ -717,24 +743,31 @@ public class ServiceConfig<T> extends ServiceConfigBase<T> {
     }
 
     private URL exportRemote(URL url, List<URL> registryURLs) {
+        // 注册中心地址集合为空不处理
         if (CollectionUtils.isNotEmpty(registryURLs)) {
+            // 遍历每一个注册中心地址
             for (URL registryURL : registryURLs) {
+                // 将服务的接口相关信息存储到内存中
                 if (SERVICE_REGISTRY_PROTOCOL.equals(registryURL.getProtocol())) {
                     url = url.addParameterIfAbsent(SERVICE_NAME_MAPPING_KEY, "true");
                 }
 
                 //if protocol is only injvm ,not register
+                // 包含injvm 不处理
                 if (LOCAL_PROTOCOL.equalsIgnoreCase(url.getProtocol())) {
                     continue;
                 }
 
+                // 获取动态属性 dynamic true 创建临时节点 false 创建持久节点 需要人工进行干预
                 url = url.addParameterIfAbsent(DYNAMIC_KEY, registryURL.getParameter(DYNAMIC_KEY));
                 URL monitorUrl = ConfigValidationUtils.loadMonitor(this, registryURL);
+                // 监控地址添加
                 if (monitorUrl != null) {
                     url = url.putAttribute(MONITOR_KEY, monitorUrl);
                 }
 
                 // For providers, this is used to enable custom proxy to generate invoker
+                // 支持自定义生成代理对象
                 String proxy = url.getParameter(PROXY_KEY);
                 if (StringUtils.isNotEmpty(proxy)) {
                     registryURL = registryURL.addParameter(PROXY_KEY, proxy);
@@ -766,10 +799,15 @@ public class ServiceConfig<T> extends ServiceConfigBase<T> {
 
     @SuppressWarnings({"unchecked", "rawtypes"})
     private void doExportUrl(URL url, boolean withMetaData) {
+        //1.先执行proxyFactory接口的自适应拓展点代理类 proxyFactory$Adaptive 的getInvoker()
+        //2.执行包装类 StubProxyfactoryWarapper getInvoker()
+        //3.执行javaSsistProxyFactoryWarapper getInvoker()
+        // 🤔 不理解
         Invoker<?> invoker = proxyFactory.getInvoker(ref, (Class) interfaceClass, url);
         if (withMetaData) {
             invoker = new DelegateProviderMetaDataInvoker(invoker, this);
         }
+        // SPI导出
         Exporter<?> exporter = protocolSPI.export(invoker);
         exporters.add(exporter);
     }
@@ -779,11 +817,14 @@ public class ServiceConfig<T> extends ServiceConfigBase<T> {
      * always export injvm
      */
     private void exportLocal(URL url) {
+        // dubbo://192.168.1.28:20880/org.apache.dubbo.springboot.demo.DemoService?anyhost=true&application=dubbo-springboot-demo-provider&background=false&bind.ip=192.168.1.28&bind.port=20880&deprecated=false&dubbo=2.0.2&dynamic=true&executor-management-mode=isolation&file-cache=true&generic=false&interface=org.apache.dubbo.springboot.demo.DemoService&ipv6=2409:8a00:60c1:9140:f866:8212:f7b:9a30&methods=registerUser,sayHello,sayHelloAsync&pid=45318&prefer.serialization=fastjson2,hessian2&qos.enable=true&release=3.2.0&side=provider&timestamp=1753492552895
         URL local = URLBuilder.from(url)
             .setProtocol(LOCAL_PROTOCOL)
             .setHost(LOCALHOST_VALUE)
             .setPort(0)
             .build();
+        // injvm://127.0.0.1/org.apache.dubbo.springboot.demo.DemoService?anyhost=true&application=dubbo-springboot-demo-provider&background=false&bind.ip=192.168.1.28&bind.port=20880&deprecated=false&dubbo=2.0.2&dynamic=true&executor-management-mode=isolation&file-cache=true&generic=false&interface=org.apache.dubbo.springboot.demo.DemoService&ipv6=2409:8a00:60c1:9140:f866:8212:f7b:9a30&methods=registerUser,sayHello,sayHelloAsync&pid=45318&prefer.serialization=fastjson2,hessian2&qos.enable=true&release=3.2.0&side=provider&timestamp=1753492552895
+        // 可以看到进行IP端口的修改 以及协议修改成 inJVM
         local = local.setScopeModel(getScopeModel())
             .setServiceModel(providerModel);
         local = local.addParameter(EXPORTER_LISTENER_KEY, LOCAL_PROTOCOL);

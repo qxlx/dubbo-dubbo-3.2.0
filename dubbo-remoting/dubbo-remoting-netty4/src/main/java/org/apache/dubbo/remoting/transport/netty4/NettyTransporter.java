@@ -32,6 +32,7 @@ public class NettyTransporter implements Transporter {
 
     @Override
     public RemotingServer bind(URL url, ChannelHandler handler) throws RemotingException {
+        // 新建NettyServer，执行IP地址和端口号的绑定，启动服务端。
         return new NettyServer(url, handler);
     }
 

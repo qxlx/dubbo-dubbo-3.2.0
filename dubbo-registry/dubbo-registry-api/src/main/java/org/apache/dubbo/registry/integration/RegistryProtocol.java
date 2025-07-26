@@ -228,6 +228,13 @@ public class RegistryProtocol implements Protocol, ScopeModelAware {
             registered));
     }
 
+    /**
+     * 远程导出核心逻辑，开启Netty端口服务 + 向注册中心写数据
+     * @param originInvoker Service invoker
+     * @return
+     * @param <T>
+     * @throws RpcException
+     */
     @Override
     public <T> Exporter<T> export(final Invoker<T> originInvoker) throws RpcException {
         URL registryUrl = getRegistryUrl(originInvoker);
@@ -246,6 +253,7 @@ public class RegistryProtocol implements Protocol, ScopeModelAware {
 
         providerUrl = overrideUrlWithConfig(providerUrl, overrideSubscribeListener);
         //export invoker
+        // 开启本地服务 netty实现
         final ExporterChangeableWrapper<T> exporter = doLocalExport(originInvoker, providerUrl);
 
         // url to registry
@@ -255,6 +263,7 @@ public class RegistryProtocol implements Protocol, ScopeModelAware {
         // decide if we need to delay publish (provider itself and registry should both need to register)
         boolean register = providerUrl.getParameter(REGISTER_KEY, true) && registryUrl.getParameter(REGISTER_KEY, true);
         if (register) {
+            // 服务注册到zookeeper
             register(registry, registeredProviderUrl);
         }
 
