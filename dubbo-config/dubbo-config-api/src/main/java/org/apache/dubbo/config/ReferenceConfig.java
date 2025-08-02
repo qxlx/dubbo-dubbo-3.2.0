@@ -173,11 +173,20 @@ public class ReferenceConfig<T> extends ReferenceConfigBase<T> {
         super(moduleModel, reference);
     }
 
+    /**
+     * 重写父类方法
+     * 1.使用SPI 机制 给protocolSPI赋值
+     * 2.使用SPI 机制 给proxyFactory赋值
+     * @param oldScopeModel
+     * @param newScopeModel
+     */
     @Override
     protected void postProcessAfterScopeModelChanged(ScopeModel oldScopeModel, ScopeModel newScopeModel) {
         super.postProcessAfterScopeModelChanged(oldScopeModel, newScopeModel);
 
+        // protocol 的实现
         protocolSPI = this.getExtensionLoader(Protocol.class).getAdaptiveExtension();
+        // proxyFactory 的代理实现
         proxyFactory = this.getExtensionLoader(ProxyFactory.class).getAdaptiveExtension();
     }
 

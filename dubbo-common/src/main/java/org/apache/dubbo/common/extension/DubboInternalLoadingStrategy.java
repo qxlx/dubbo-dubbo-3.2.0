@@ -28,6 +28,7 @@ public class DubboInternalLoadingStrategy implements LoadingStrategy {
         return "META-INF/dubbo/internal/";
     }
 
+    //  最大优先级：Integer的最小值。
     @Override
     public int getPriority() {
         return MAX_PRIORITY;

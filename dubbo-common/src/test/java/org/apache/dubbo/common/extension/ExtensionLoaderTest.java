@@ -747,6 +747,12 @@ class ExtensionLoaderTest {
     }
 
     @Test
+    void testMySPIFile() {
+        List<LoadingStrategy> loadingStrategies = ExtensionLoader.getLoadingStrategies();
+        ExtensionLoader.setLoadingStrategies(new DubboExternalLoadingStrategyTest( true));
+    }
+
+    @Test
     void testLoadByDubboInternalSPI() {
         ExtensionLoader<SPI1> extensionLoader = getExtensionLoader(SPI1.class);
         SPI1 spi1 = extensionLoader.getExtension("1", true);

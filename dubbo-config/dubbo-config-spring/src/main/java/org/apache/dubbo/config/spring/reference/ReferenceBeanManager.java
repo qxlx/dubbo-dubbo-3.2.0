@@ -63,6 +63,11 @@ public class ReferenceBeanManager implements ApplicationContextAware {
     private volatile boolean initialized = false;
     private ModuleModel moduleModel;
 
+    /**
+     * 添加引用bean
+     * @param referenceBean
+     * @throws Exception
+     */
     public void addReference(ReferenceBean referenceBean) throws Exception {
         String referenceBeanName = referenceBean.getId();
         Assert.notEmptyString(referenceBeanName, "The id of ReferenceBean cannot be empty");
@@ -92,6 +97,7 @@ public class ReferenceBeanManager implements ApplicationContextAware {
 
         // if add reference after prepareReferenceBeans(), should init it immediately.
         if (initialized) {
+            // 初始化bean
             initReferenceBean(referenceBean);
         }
     }
@@ -152,6 +158,7 @@ public class ReferenceBeanManager implements ApplicationContextAware {
     }
 
     /**
+     * 初始化bean
      * NOTE: This method should only call after all dubbo config beans and all property resolvers is loaded.
      *
      * @param referenceBean

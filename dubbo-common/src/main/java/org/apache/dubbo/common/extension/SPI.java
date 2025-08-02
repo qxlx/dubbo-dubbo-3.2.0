@@ -57,11 +57,13 @@ import java.lang.annotation.Target;
 public @interface SPI {
 
     /**
+     * 默认的拓展名称
      * default extension name
      */
     String value() default "";
 
     /**
+     * SPI的作用范围,默认是应用范围
      * scope of SPI, default value is application scope.
      */
     ExtensionScope scope() default ExtensionScope.APPLICATION;

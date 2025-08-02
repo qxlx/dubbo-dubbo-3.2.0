@@ -207,25 +207,35 @@ public class ReferenceBean<T> implements FactoryBean<T>,
 
     @Override
     public void afterPropertiesSet() throws Exception {
+        // 获取Spring的Bean工厂
         ConfigurableListableBeanFactory beanFactory = getBeanFactory();
 
         // pre init xml reference bean or @DubboReference annotation
         Assert.notEmptyString(getId(), "The id of ReferenceBean cannot be empty");
+        // beanId 获取BD
         BeanDefinition beanDefinition = beanFactory.getBeanDefinition(getId());
+        // 获取接口类
         this.interfaceClass = (Class<?>) beanDefinition.getAttribute(ReferenceAttributes.INTERFACE_CLASS);
+        // 获取接口名字
         this.interfaceName = (String) beanDefinition.getAttribute(ReferenceAttributes.INTERFACE_NAME);
         Assert.notNull(this.interfaceClass, "The interface class of ReferenceBean is not initialized");
 
+        // 是否包含引用属性
+        // @DubboReference注解在java配置类的@Bean注解的方法上时，以及@DubboReference注解在引用对象的属性或setter方法上时，包含"referenceProps"属性。
+        // 如果Spring的bean定义中包含"referenceProps"属性，则获取该属性值并转换为Map<String, Object>集合，赋值给referenceProps属性。
+        // 说明是Dubbbo类型的引用对象。
         if (beanDefinition.hasAttribute(Constants.REFERENCE_PROPS)) {
             // @DubboReference annotation at java-config class @Bean method
             // @DubboReference annotation at reference field or setter method
             referenceProps = (Map<String, Object>) beanDefinition.getAttribute(Constants.REFERENCE_PROPS);
         } else {
+            // 注解方式
             if (beanDefinition instanceof AnnotatedBeanDefinition) {
                 // Return ReferenceBean in java-config class @Bean method
                 if (referenceProps == null) {
                     referenceProps = new LinkedHashMap<>();
                 }
+                /// 返回通过@Bean注解标记的方法返回的ReferenceBean。
                 ReferenceBeanSupport.convertReferenceProps(referenceProps, interfaceClass);
                 if (this.interfaceName == null) {
                     this.interfaceName = (String) referenceProps.get(ReferenceAttributes.INTERFACE);
@@ -237,7 +247,9 @@ public class ReferenceBean<T> implements FactoryBean<T>,
         }
         Assert.notNull(this.interfaceName, "The interface name of ReferenceBean is not initialized");
 
+        // 通过spring 获取dubboReferenceBeanManager 管理器
         ReferenceBeanManager referenceBeanManager = beanFactory.getBean(ReferenceBeanManager.BEAN_NAME, ReferenceBeanManager.class);
+        // 管理器 添加本实例 也就是
         referenceBeanManager.addReference(this);
     }
 

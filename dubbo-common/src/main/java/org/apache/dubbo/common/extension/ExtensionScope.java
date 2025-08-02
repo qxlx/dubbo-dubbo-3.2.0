@@ -27,7 +27,7 @@ import org.apache.dubbo.rpc.model.ModuleModel;
  */
 public enum ExtensionScope {
 
-    /**
+    /**应用框架
      * The extension instance is used within framework, shared with all applications and modules.
      *
      * <p>Framework scope SPI extension can only obtain {@link FrameworkModel},
@@ -43,6 +43,7 @@ public enum ExtensionScope {
     FRAMEWORK,
 
     /**
+     * 应用
      * The extension instance is used within one application, shared with all modules of the application,
      * and different applications create different extension instances.
      *
@@ -59,6 +60,7 @@ public enum ExtensionScope {
     APPLICATION,
 
     /**
+     * 模块
      * The extension instance is used within one module, and different modules create different extension instances.
      *
      * <p>Module scope SPI extension can obtain {@link FrameworkModel}, {@link ApplicationModel} and {@link ModuleModel}.</p>

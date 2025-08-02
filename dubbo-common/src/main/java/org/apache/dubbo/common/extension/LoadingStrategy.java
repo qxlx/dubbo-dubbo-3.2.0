@@ -20,17 +20,30 @@ import org.apache.dubbo.common.lang.Prioritized;
 
 public interface LoadingStrategy extends Prioritized {
 
+    /**
+     * 查找的位置
+     * @return
+     */
     String directory();
 
+    /**
+     * 是否优先使用ExtensionClassLoader
+     * @return
+     */
     default boolean preferExtensionClassLoader() {
         return false;
     }
 
+    /**
+     * 需要排除的包中SPI拓展名
+     * @return
+     */
     default String[] excludedPackages() {
         return null;
     }
 
     /**
+     * 需要包含的包中的SPI拓展名
      * To restrict some class that should not be loaded from `org.apache.dubbo` package type SPI class.
      * For example, we can restrict the implementation class which package is `org.xxx.xxx`
      * can be loaded as SPI implementation.
@@ -68,6 +81,7 @@ public interface LoadingStrategy extends Prioritized {
     }
 
     /**
+     *  表示当前策略是否支持覆盖其他优先级较低的实例
      * Indicates current {@link LoadingStrategy} supports overriding other lower prioritized instances or not.
      *
      * @return if supports, return <code>true</code>, or <code>false</code>

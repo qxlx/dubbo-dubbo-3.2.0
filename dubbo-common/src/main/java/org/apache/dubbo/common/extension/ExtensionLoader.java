@@ -136,6 +136,8 @@ public class ExtensionLoader<T> {
 
     private final Map<String, IllegalStateException> exceptions = new ConcurrentHashMap<>();
 
+    // 实例化对象的时候 会创建 其实就是通过java SPI机制进行获取
+    // 并且按照优先级进行排序
     private static volatile LoadingStrategy[] strategies = loadLoadingStrategies();
 
     private static final Map<String, String> specialSPILoadingStrategyMap = getSpecialSPILoadingStrategyMap();
@@ -169,6 +171,7 @@ public class ExtensionLoader<T> {
      * @since 2.7.7
      */
     private static LoadingStrategy[] loadLoadingStrategies() {
+        // 其实就是使用java SPI机制加载 然后进行实例化
         return stream(load(LoadingStrategy.class).spliterator(), false).sorted()
             .toArray(LoadingStrategy[]::new);
     }
@@ -724,6 +727,10 @@ public class ExtensionLoader<T> {
         }
     }
 
+    /**
+     * 获取自适应拓展实例
+     * @return
+     */
     @SuppressWarnings("unchecked")
     public T getAdaptiveExtension() {
         checkDestroyed();
@@ -739,6 +746,7 @@ public class ExtensionLoader<T> {
                 instance = cachedAdaptiveInstance.get();
                 if (instance == null) {
                     try {
+                        // 创建拓展实例
                         instance = createAdaptiveExtension();
                         cachedAdaptiveInstance.set(instance);
                     } catch (Throwable t) {
@@ -795,6 +803,7 @@ public class ExtensionLoader<T> {
                 instance = postProcessAfterInitialization(instance, name);
             }
 
+            // 是否需要包装
             if (wrap) {
                 List<Class<?>> wrapperClassesList = new ArrayList<>();
                 if (cachedWrapperClasses != null) {
@@ -859,6 +868,11 @@ public class ExtensionLoader<T> {
         return getExtensionClasses().containsKey(name);
     }
 
+    /**
+     *
+     * @param instance
+     * @return
+     */
     private T injectExtension(T instance) {
         if (injector == null) {
             return instance;
@@ -953,7 +967,12 @@ public class ExtensionLoader<T> {
         return getExtensionClasses().get(name);
     }
 
+    /**
+     * 获取拓展类
+     * @return
+     */
     private Map<String, Class<?>> getExtensionClasses() {
+        // 从事从缓存中获取   key 拓展的名称 value 拓展的Class对象
         Map<String, Class<?>> classes = cachedClasses.get();
         if (classes == null) {
             synchronized (cachedClasses) {
@@ -969,6 +988,7 @@ public class ExtensionLoader<T> {
                             "Exception occurred when loading extension class (interface: " + type + ")",
                             e);
                     }
+                    // 设置到缓存中 下次直接使用
                     cachedClasses.set(classes);
                 }
             }
@@ -978,18 +998,24 @@ public class ExtensionLoader<T> {
 
     /**
      * synchronized in getExtensionClasses
+     *  创建类表
+     *
      */
     @SuppressWarnings("deprecation")
     private Map<String, Class<?>> loadExtensionClasses() throws InterruptedException {
         checkDestroyed();
+        // 缓存默认的扩展名称，注意，默认扩展的名称只能有一个
         cacheDefaultExtensionName();
 
         Map<String, Class<?>> extensionClasses = new HashMap<>();
 
+        // 前面已经初始化过了
         for (LoadingStrategy strategy : strategies) {
+            // 加载目录：注意，===type的名称作为配置文件的名称，拼接上不同策略对应的目录，得到配置文件的路径===
             loadDirectory(extensionClasses, strategy, type.getName());
 
             // compatible with old ExtensionFactory
+            // 兼容处理
             if (this.type == ExtensionInjector.class) {
                 loadDirectory(extensionClasses, strategy, ExtensionFactory.class.getName());
             }
@@ -1000,6 +1026,7 @@ public class ExtensionLoader<T> {
 
     private void loadDirectory(Map<String, Class<?>> extensionClasses, LoadingStrategy strategy,
                                String type) throws InterruptedException {
+        // 内部加载目录
         loadDirectoryInternal(extensionClasses, strategy, type);
         try {
             String oldType = type.replace("org.apache", "com.alibaba");
@@ -1037,13 +1064,16 @@ public class ExtensionLoader<T> {
         }
     }
 
+    // 加载目录的内部实现
     private void loadDirectoryInternal(Map<String, Class<?>> extensionClasses,
                                        LoadingStrategy loadingStrategy, String type)
         throws InterruptedException {
+        // 获取文件名 其实不同策略加载的路径
         String fileName = loadingStrategy.directory() + type;
         try {
             List<ClassLoader> classLoadersToLoad = new LinkedList<>();
 
+            // 类加载器的处理
             // try to load from ExtensionLoader's ClassLoader first
             if (loadingStrategy.preferExtensionClassLoader()) {
                 ClassLoader extensionLoaderClassLoader = ExtensionLoader.class.getClassLoader();
@@ -1070,6 +1100,12 @@ public class ExtensionLoader<T> {
                     Enumeration<java.net.URL> resources = ClassLoader.getSystemResources(fileName);
                     if (resources != null) {
                         while (resources.hasMoreElements()) {
+                            // 从用于加载类的搜索路径中查找指定名称的所有资源。
+                            // 如 org.apache.dubbo.common.serialize.Serialization 文件用于配置序列化的扩展，
+                            // 该文件在多个模块中进行了配置：
+                            // - dubbo-serialization-fastjson2模块的配置；
+                            // - dubbo-serialization-hessian2的配置；
+                            // - dubbo-serialization-jdk中的配置。
                             loadResource(extensionClasses, null, resources.nextElement(),
                                 loadingStrategy.overridden(), loadingStrategy.includedPackages(),
                                 loadingStrategy.excludedPackages(),
@@ -1077,12 +1113,18 @@ public class ExtensionLoader<T> {
                         }
                     }
                 } else {
+                    // 添加到需要加载的类加载器集合中
                     classLoadersToLoad.addAll(classLoaders);
                 }
             }
 
+            // 根据收集到的需要加载的扩展点名称，从fileName配置文件中获取对应的扩展点扩展类全限定类名集合
+
+            // 加载资源：文件名称，类加载器实例
             Map<ClassLoader, Set<java.net.URL>> resources = ClassLoaderResourceLoader.loadResources(
                 fileName, classLoadersToLoad);
+
+            // 遍历资源：key是类加载器，value是扩展的全限定类名URL的集合
             resources.forEach(((classLoader, urls) -> {
                 loadFromClass(extensionClasses, loadingStrategy.overridden(), urls, classLoader,
                     loadingStrategy.includedPackages(), loadingStrategy.excludedPackages(),
@@ -1382,13 +1424,22 @@ public class ExtensionLoader<T> {
         return name.toLowerCase();
     }
 
+    /**
+     * 创建自适应的拓展实例
+     * @return
+     */
     @SuppressWarnings("unchecked")
     private T createAdaptiveExtension() {
         try {
+            // 使用反射创建实例
             T instance = (T) getAdaptiveExtensionClass().newInstance();
+            // 前置处理
             instance = postProcessBeforeInitialization(instance, null);
+            // 注入拓展属性
             injectExtension(instance);
+            // 后置处理
             instance = postProcessAfterInitialization(instance, null);
+            // 初始化拓展
             initExtension(instance);
             return instance;
         } catch (Exception e) {
@@ -1402,6 +1453,7 @@ public class ExtensionLoader<T> {
         if (cachedAdaptiveClass != null) {
             return cachedAdaptiveClass;
         }
+        // 创建自适应拓展的Class对象
         return cachedAdaptiveClass = createAdaptiveExtensionClass();
     }
 
@@ -1409,13 +1461,17 @@ public class ExtensionLoader<T> {
         // Adaptive Classes' ClassLoader should be the same with Real SPI interface classes' ClassLoader
         ClassLoader classLoader = type.getClassLoader();
         try {
+            // 如果是原生的，则使用类加载器加载并返回："全限定类名$Adaptive"
             if (NativeUtils.isNative()) {
                 return classLoader.loadClass(type.getName() + "$Adaptive");
             }
         } catch (Throwable ignore) {
 
         }
+        // 使用自适应类代码生成器生成代码
         String code = new AdaptiveClassCodeGenerator(type, cachedDefaultName).generate();
+
+        // 使用编译器编译代码并返回Class对象
         org.apache.dubbo.common.compiler.Compiler compiler = extensionDirector.getExtensionLoader(
             org.apache.dubbo.common.compiler.Compiler.class).getAdaptiveExtension();
         return compiler.compile(type, code, classLoader);

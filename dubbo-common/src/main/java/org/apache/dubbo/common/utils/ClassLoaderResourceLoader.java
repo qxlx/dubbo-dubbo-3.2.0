@@ -46,6 +46,13 @@ public class ClassLoaderResourceLoader {
         GlobalResourcesRepository.registerGlobalDisposable(ClassLoaderResourceLoader::destroy);
     }
 
+    /**
+     * 使用线程池 进行多线程加载资源
+     * @param fileName
+     * @param classLoaders
+     * @return
+     * @throws InterruptedException
+     */
     public static Map<ClassLoader, Set<URL>> loadResources(String fileName, Collection<ClassLoader> classLoaders) throws InterruptedException {
         Map<ClassLoader, Set<URL>> resources = new ConcurrentHashMap<>();
         CountDownLatch countDownLatch = new CountDownLatch(classLoaders.size());

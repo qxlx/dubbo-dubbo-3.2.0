@@ -96,6 +96,7 @@ public class AdaptiveClassCodeGenerator {
     }
 
     /**
+     *  生成并返回类的java代码。
      * generate and return class code
      * @param sort - whether sort methods
      */

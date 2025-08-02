@@ -23,6 +23,7 @@ package org.apache.dubbo.common.extension;
  */
 public class DubboLoadingStrategy implements LoadingStrategy {
 
+    // 指定加载固定路径
     @Override
     public String directory() {
         return "META-INF/dubbo/";
@@ -35,6 +36,7 @@ public class DubboLoadingStrategy implements LoadingStrategy {
 
     @Override
     public int getPriority() {
+        // 优先级最高 0
         return NORMAL_PRIORITY;
     }
 

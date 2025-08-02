@@ -87,7 +87,7 @@ public @interface Activate {
      * Absolute ordering info, optional
      *
      * Ascending order, smaller values will be in the front o the list.
-     *
+     * 值越小, 优先级越高
      * @return absolute ordering info
      */
     int order() default 0;

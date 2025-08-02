@@ -33,6 +33,7 @@ public class ServicesLoadingStrategy implements LoadingStrategy {
         return true;
     }
 
+    // 最小值
     @Override
     public int getPriority() {
         return MIN_PRIORITY;
