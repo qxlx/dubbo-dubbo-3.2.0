@@ -129,6 +129,9 @@ public abstract class DynamicDirectory<T> extends AbstractDirectory<T> implement
 
         ModuleModel moduleModel = url.getOrDefaultModuleModel();
 
+        // 获取集群扩展
+        // 获取Cluster 接口对应拓展点加载器
+        // 从Cluster 拓展点加载器中获取自适应的拓展点
         this.cluster = moduleModel.getExtensionLoader(Cluster.class).getAdaptiveExtension();
         this.routerFactory = moduleModel.getExtensionLoader(RouterFactory.class).getAdaptiveExtension();
 

@@ -46,9 +46,14 @@ public class DubboSpringInitializer {
     private DubboSpringInitializer() {
     }
 
+    /**
+     * 初始化dubbo
+     * @param registry
+     */
     public static void initialize(BeanDefinitionRegistry registry) {
 
         // Spring ApplicationContext may not ready at this moment (e.g. load from xml), so use registry as key
+        //
         if (contextMap.putIfAbsent(registry, new DubboSpringInitContext()) != null) {
             return;
         }
@@ -60,6 +65,7 @@ public class DubboSpringInitializer {
         ConfigurableListableBeanFactory beanFactory = findBeanFactory(registry);
 
         // init dubbo context
+        // 初始化dubbo上下文
         initContext(context, registry, beanFactory);
     }
 

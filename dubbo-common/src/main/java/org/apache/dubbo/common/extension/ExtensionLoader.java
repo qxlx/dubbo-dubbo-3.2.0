@@ -1448,15 +1448,24 @@ public class ExtensionLoader<T> {
         }
     }
 
+    // 获取自适应拓展点的类对象
     private Class<?> getAdaptiveExtensionClass() {
+        // 获取当前拓展点 cluster 的加载器 中的所有拓展点
         getExtensionClasses();
         if (cachedAdaptiveClass != null) {
             return cachedAdaptiveClass;
         }
         // 创建自适应拓展的Class对象
+        // 创建自适应拓展点类对象的逻辑
         return cachedAdaptiveClass = createAdaptiveExtensionClass();
     }
 
+    /**
+     * 1.生成java代码
+     * 2.进行编译
+     * 3.生成类对象
+     * @return
+     */
     private Class<?> createAdaptiveExtensionClass() {
         // Adaptive Classes' ClassLoader should be the same with Real SPI interface classes' ClassLoader
         ClassLoader classLoader = type.getClassLoader();

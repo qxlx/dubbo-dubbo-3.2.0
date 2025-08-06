@@ -71,6 +71,9 @@ public class JavassistProxyFactory extends AbstractProxyFactory {
                 protected Object doInvoke(T proxy, String methodName,
                                           Class<?>[] parameterTypes,
                                           Object[] arguments) throws Throwable {
+
+                    // 使用wrapper代理类对象 调用自己的invokeMethod方法
+                    // 避免反射调用
                     // 调用Invoker()
                     return wrapper.invokeMethod(proxy, methodName, parameterTypes, arguments);
                 }
