@@ -556,6 +556,12 @@ public class ExtensionLoader<T> {
         return extension;
     }
 
+    /**
+     * 根据指定拓展名称去创建拓展点实例对象
+     * @param name
+     * @param wrap
+     * @return
+     */
     @SuppressWarnings("unchecked")
     public T getExtension(String name, boolean wrap) {
         checkDestroyed();
@@ -787,6 +793,12 @@ public class ExtensionLoader<T> {
         return new IllegalStateException(buf.toString());
     }
 
+    /**
+     * 根据指定名称创建拓展点实例对象
+     * @param name
+     * @param wrap
+     * @return
+     */
     @SuppressWarnings("unchecked")
     private T createExtension(String name, boolean wrap) {
         Class<?> clazz = getExtensionClasses().get(name);
@@ -794,18 +806,34 @@ public class ExtensionLoader<T> {
             throw findException(name);
         }
         try {
+            // extensionInstances 已经实例话的拓展点集合实例
+            // 从集合中通过class 看有没有对应的实例
             T instance = (T) extensionInstances.get(clazz);
             if (instance == null) {
+
+                // 没有的话 就创建实例 添加到集合中
+                // key 是Class. value是具体的实例对象
+                // 使用 chm 保证线程安全
+                // 其实就是通过默认构造和匹配对应的构造方法 通过添加参数进行反射创建实例
                 extensionInstances.putIfAbsent(clazz, createExtensionInstance(clazz));
+
+                // 在获取原始的对象 就是刚才put的对象
                 instance = (T) extensionInstances.get(clazz);
+
+                // 前置处理 对原始对象进行前置包装等处理
                 instance = postProcessBeforeInitialization(instance, name);
+
+                // 拓展点注入
                 injectExtension(instance);
+
+                // 后置处理 对原始对象进行后置包装等处理
                 instance = postProcessAfterInitialization(instance, name);
             }
 
             // 是否需要包装
             if (wrap) {
                 List<Class<?>> wrapperClassesList = new ArrayList<>();
+                // 在前置加载类的时候 获取有@Wrapper注解的类
                 if (cachedWrapperClasses != null) {
                     wrapperClassesList.addAll(cachedWrapperClasses);
                     wrapperClassesList.sort(WrapperComparator.COMPARATOR);
@@ -813,14 +841,22 @@ public class ExtensionLoader<T> {
                 }
 
                 if (CollectionUtils.isNotEmpty(wrapperClassesList)) {
+                    // 循环便利
                     for (Class<?> wrapperClass : wrapperClassesList) {
+                        // 装饰器上是否有Wrapper 注解
                         Wrapper wrapper = wrapperClass.getAnnotation(Wrapper.class);
+
+                        // 1. Wrapper注解 == null
+                        // 2.
                         boolean match = (wrapper == null) || ((ArrayUtils.isEmpty(
                             wrapper.matches()) || ArrayUtils.contains(wrapper.matches(),
                             name)) && !ArrayUtils.contains(wrapper.mismatches(), name));
+                        // 匹配包装
                         if (match) {
+                            // 获取实例对象然后进行包装
                             instance = injectExtension(
                                 (T) wrapperClass.getConstructor(type).newInstance(instance));
+                            // 后置处理
                             instance = postProcessAfterInitialization(instance, name);
                         }
                     }
