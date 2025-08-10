@@ -168,6 +168,7 @@ public class ServiceConfig<T> extends ServiceConfigBase<T> {
     @Override
     protected void postProcessAfterScopeModelChanged(ScopeModel oldScopeModel, ScopeModel newScopeModel) {
         super.postProcessAfterScopeModelChanged(oldScopeModel, newScopeModel);
+        //ExtensionLoader 缓存接口的代理类
         protocolSPI = this.getExtensionLoader(Protocol.class).getAdaptiveExtension();
         proxyFactory = this.getExtensionLoader(ProxyFactory.class).getAdaptiveExtension();
     }

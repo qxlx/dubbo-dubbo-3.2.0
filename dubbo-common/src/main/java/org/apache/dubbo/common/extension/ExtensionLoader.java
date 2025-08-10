@@ -915,13 +915,17 @@ public class ExtensionLoader<T> {
         }
 
         try {
+            // 获取实例的所有get方法
             for (Method method : instance.getClass().getMethods()) {
+                // 如果不是setter方法 不处理
+                // 1.public & setter && one parameter
                 if (!isSetter(method)) {
                     continue;
                 }
                 /**
                  * Check {@link DisableInject} to see if we need auto-injection for this property
                  */
+                // 包含有 @DisableInject注解 不处理
                 if (method.isAnnotationPresent(DisableInject.class)) {
                     continue;
                 }
@@ -937,15 +941,22 @@ public class ExtensionLoader<T> {
                     }
                 }
 
+                // 获取方法的第一个参数
                 Class<?> pt = method.getParameterTypes()[0];
+                // 基本数据类型不处理
                 if (ReflectUtils.isPrimitives(pt)) {
                     continue;
                 }
 
                 try {
+                    // 获取方法的属性
+                    // 获取属性名
                     String property = getSetterProperty(method);
+                    // 根据属性名 找到对应的值
+                    //
                     Object object = injector.getInstance(pt, property);
                     if (object != null) {
+                        // 获取实例对象 反射方式调用进行属性复制
                         method.invoke(instance, object);
                     }
                 } catch (Exception e) {
