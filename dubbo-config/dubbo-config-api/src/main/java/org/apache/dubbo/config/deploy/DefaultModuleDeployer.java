@@ -435,17 +435,23 @@ public class DefaultModuleDeployer extends AbstractDeployer<ModuleModel> impleme
         asyncExportingFutures.clear();
     }
 
+    // 消费者启动的核心流程  服务的引用
     private void referServices() {
+        // 其实就是针对所有@DubboReference注解的类 便利处理
         configManager.getReferences().forEach(rc -> {
             try {
+                // 强制转换成 ReferenceConfig
                 ReferenceConfig<?> referenceConfig = (ReferenceConfig<?>) rc;
+                // 如果配置没有刷新的话 则刷新引用配置
                 if (!referenceConfig.isRefreshed()) {
                     referenceConfig.refresh();
                 }
 
                 if (rc.shouldInit()) {
+                    // 异步处理
                     if (referAsync || rc.shouldReferAsync()) {
                         ExecutorService executor = executorRepository.getServiceReferExecutor();
+                        // 线程池的方式进行执行 completableFuture对象
                         CompletableFuture<Void> future = CompletableFuture.runAsync(() -> {
                             try {
                                 referenceCache.get(rc);
@@ -456,6 +462,7 @@ public class DefaultModuleDeployer extends AbstractDeployer<ModuleModel> impleme
 
                         asyncReferringFutures.add(future);
                     } else {
+                        // 使用当前线程进行从引用缓存中获取rc对应的代理 通过代理调用远程服务
                         referenceCache.get(rc);
                     }
                 }

@@ -234,9 +234,10 @@ public class ReferenceConfig<T> extends ReferenceConfigBase<T> {
         }
 
         if (ref == null) {
+            // 引用提供方的每个接口都有与之对应的ref对象
             // ensure start module, compatible with old api usage
             getScopeModel().getDeployer().start();
-
+            // 初始化ref对象
             init();
         }
 
@@ -265,6 +266,9 @@ public class ReferenceConfig<T> extends ReferenceConfigBase<T> {
         }
     }
 
+    /**
+     * 初始化逻辑
+     */
     protected synchronized void init() {
         if (initialized && ref != null) {
             return;
@@ -301,6 +305,7 @@ public class ReferenceConfig<T> extends ReferenceConfigBase<T> {
 
             serviceMetadata.getAttachments().putAll(referenceParameters);
 
+            // 根据引用参数创建代理对象
             ref = createProxy(referenceParameters);
 
             serviceMetadata.setTarget(ref);
@@ -425,6 +430,11 @@ public class ReferenceConfig<T> extends ReferenceConfigBase<T> {
         return map;
     }
 
+    /**
+     * 创建代理对象的核心逻辑  inJvm引用 + 远程引用 + 生成代理对象
+     * @param referenceParameters
+     * @return
+     */
     @SuppressWarnings({"unchecked"})
     private T createProxy(Map<String, String> referenceParameters) {
         urls.clear();
@@ -433,11 +443,14 @@ public class ReferenceConfig<T> extends ReferenceConfigBase<T> {
 
         if (StringUtils.isNotEmpty(url)) {
             // user specified URL, could be peer-to-peer address, or register center's address.
+            // 将填写的url字符串解析成URL对象, 并添加到URL集合中去
+            // 解析的过程中发现是注册中心地址的话
             parseUrl(referenceParameters);
         } else {
             // if protocols not in jvm checkRegistry
             aggregateUrlFromRegistry(referenceParameters);
         }
+        // 远程引用创建 invoker对象
         createInvoker();
 
         if (logger.isInfoEnabled()) {
@@ -453,6 +466,7 @@ public class ReferenceConfig<T> extends ReferenceConfigBase<T> {
         MetadataUtils.publishServiceDefinition(consumerUrl, consumerModel.getServiceModel(), getApplicationModel());
 
         // create service proxy
+        // 创建刚刚闯出来的 invoker 对象通过调用proxyFactory.getProxy() 方法包装成代理对象
         return (T) proxyFactory.getProxy(invoker, ProtocolUtils.isGeneric(generic));
     }
 
