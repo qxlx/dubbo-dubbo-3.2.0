@@ -49,11 +49,16 @@ public class InvokerInvocationHandler implements InvocationHandler {
 
     @Override
     public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+        // 如果是OBject dubbo框架不处理
         if (method.getDeclaringClass() == Object.class) {
             return method.invoke(invoker, args);
         }
+        // 获取方法名
         String methodName = method.getName();
+        // 获取参数
         Class<?>[] parameterTypes = method.getParameterTypes();
+        // 参数是0个代表是无参构造
+        // 直接调用对应的方法 toString destroy hashCode
         if (parameterTypes.length == 0) {
             if ("toString".equals(methodName)) {
                 return invoker.toString();
@@ -63,15 +68,19 @@ public class InvokerInvocationHandler implements InvocationHandler {
             } else if ("hashCode".equals(methodName)) {
                 return invoker.hashCode();
             }
+            // 如果参数是一个的话 并且还是equals的话 则也不是dubbo矿机处理的重点
         } else if (parameterTypes.length == 1 && "equals".equals(methodName)) {
             return invoker.equals(args[0]);
         }
+        // 构建类一个核心请求参数对象
         RpcInvocation rpcInvocation = new RpcInvocation(serviceModel, method.getName(), invoker.getInterface().getName(), protocolServiceKey, method.getParameterTypes(), args);
 
+        // 消费模式的话
         if (serviceModel instanceof ConsumerModel) {
             rpcInvocation.put(Constants.CONSUMER_MODEL, serviceModel);
             rpcInvocation.put(Constants.METHOD_MODEL, ((ConsumerModel) serviceModel).getMethodModel(method));
         }
+        // 将逻辑调用这个工具类调用
         return InvocationUtil.invoke(invoker, rpcInvocation);
     }
 }

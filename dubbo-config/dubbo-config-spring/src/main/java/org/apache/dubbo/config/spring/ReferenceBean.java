@@ -360,10 +360,14 @@ public class ReferenceBean<T> implements FactoryBean<T>,
         // In particular, subclasses should not have their own mutexes involved in singleton creation, to avoid the potential for deadlocks in lazy-init situations.
         //The redundant type cast is to be compatible with earlier than spring-4.2
         synchronized (((DefaultSingletonBeanRegistry)getBeanFactory()).getSingletonMutex()) {
+            // 通过get方法获取接口引用的代理对象
             return referenceConfig.get();
         }
     }
 
+    /**
+     * 懒加载初始化的一种手段
+     */
     private class DubboReferenceLazyInitTargetSource extends AbstractLazyCreationTargetSource {
 
         @Override

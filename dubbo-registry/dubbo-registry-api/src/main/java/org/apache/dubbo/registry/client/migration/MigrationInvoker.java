@@ -271,6 +271,12 @@ public class MigrationInvoker<T> implements MigrationClusterInvoker<T> {
         }
     }
 
+    /**
+     * 迁移兼容调用器
+     * @param invocation
+     * @return
+     * @throws RpcException
+     */
     @Override
     public Result invoke(Invocation invocation) throws RpcException {
         if (currentAvailableInvoker != null) {
@@ -286,6 +292,7 @@ public class MigrationInvoker<T> implements MigrationClusterInvoker<T> {
             return currentAvailableInvoker.invoke(invocation);
         }
 
+        // 根据不同的值进行肩痛处理
         switch (step) {
             case APPLICATION_FIRST:
                 currentAvailableInvoker = decideInvoker();

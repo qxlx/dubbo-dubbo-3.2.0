@@ -485,9 +485,20 @@ public class RegistryProtocol implements Protocol, ScopeModelAware {
         return key;
     }
 
+    /**
+     * 成对存在的
+     * @param type Service class
+     * @param url  URL address for the remote service
+     * @return
+     * @param <T>
+     * @throws RpcException
+     */
     @Override
     @SuppressWarnings("unchecked")
     public <T> Invoker<T> refer(Class<T> type, URL url) throws RpcException {
+        // 首先一进入方法，你可以先看下入参url是个大概的什么内容
+        // 入参url：registry://127.0.0.1:2181/org.apache.dubbo.registry.RegistryService
+        // ?REGISTRY_CLUSTER=registryConfig&application=dubbo-20-subscribe-consumer&dubbo=2.0.2&pid=7032&qos.enable=false&registry=ZooKeeper&release=3.0.7&timestamp=1670774973194
         url = getRegistryUrl(url);
         Registry registry = getRegistry(url);
         if (RegistryService.class.equals(type)) {
@@ -507,6 +518,7 @@ public class RegistryProtocol implements Protocol, ScopeModelAware {
         return doRefer(cluster, registry, type, url, qs);
     }
 
+    // 处理远程引用的方法
     protected <T> Invoker<T> doRefer(Cluster cluster, Registry registry, Class<T> type, URL url, Map<String, String> parameters) {
         Map<String, Object> consumerAttribute = new HashMap<>(url.getAttributes());
         consumerAttribute.remove(REFER_KEY);
@@ -546,11 +558,13 @@ public class RegistryProtocol implements Protocol, ScopeModelAware {
      * @return The @param MigrationInvoker passed in
      */
     protected <T> Invoker<T> interceptInvoker(ClusterInvoker<T> invoker, URL url, URL consumerUrl) {
+        // 看着SPI机器获取列表
         List<RegistryProtocolListener> listeners = findRegistryProtocolListeners(url);
         if (CollectionUtils.isEmpty(listeners)) {
             return invoker;
         }
 
+        // 依序执行onRefer方法
         for (RegistryProtocolListener listener : listeners) {
             listener.onRefer(this, invoker, consumerUrl, url);
         }
@@ -568,10 +582,23 @@ public class RegistryProtocol implements Protocol, ScopeModelAware {
         return doCreateInvoker(directory, cluster, registry, type);
     }
 
+    /**
+     * 核心逻辑
+     * 1.向注册中心注册了消费接口的信息
+     * 2.向注册中心发起了订阅及监听
+     * @param directory
+     * @param cluster
+     * @param registry
+     * @param type
+     * @return
+     * @param <T>
+     */
     protected <T> ClusterInvoker<T> doCreateInvoker(DynamicDirectory<T> directory, Cluster cluster, Registry registry, Class<T> type) {
         directory.setRegistry(registry);
         directory.setProtocol(protocol);
         // all attributes of REFER_KEY
+        // 这里构建了一个需要写到注册中心的地址信息
+        // 之前在导出的方法中 我们也看到提供者会把服务接口的地址信息写到注册中心上
         Map<String, String> parameters = new HashMap<>(directory.getConsumerUrl().getParameters());
         URL urlToRegistry = new ServiceConfigURL(
             parameters.get(PROTOCOL_KEY) == null ? CONSUMER : parameters.get(PROTOCOL_KEY),
@@ -583,10 +610,13 @@ public class RegistryProtocol implements Protocol, ScopeModelAware {
         urlToRegistry = urlToRegistry.setScopeModel(directory.getConsumerUrl().getScopeModel());
         urlToRegistry = urlToRegistry.setServiceModel(directory.getConsumerUrl().getServiceModel());
         if (directory.isShouldRegister()) {
+            // 将构建好的URLToRegistry 注册到注册中心
             directory.setRegisteredConsumerUrl(urlToRegistry);
             registry.register(directory.getRegisteredConsumerUrl());
         }
+        // 设置路由规则
         directory.buildRouterChain(urlToRegistry);
+        // 构建订阅的地址 subscribeUrl 然后发起订阅 监听注册中心的目录
         directory.subscribe(toSubscribeUrl(urlToRegistry));
 
         return (ClusterInvoker<T>) cluster.join(directory, true);

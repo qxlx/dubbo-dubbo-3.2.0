@@ -63,6 +63,7 @@ public class MigrationRuleHandler<T> {
         }
     }
 
+    // 刷新操作
     private boolean refreshInvoker(MigrationStep step, Float threshold, MigrationRule newRule) {
         if (step == null || threshold == null) {
             throw new IllegalStateException("Step or threshold of migration rule cannot be null");
@@ -73,13 +74,16 @@ public class MigrationRuleHandler<T> {
             boolean success = true;
             switch (step) {
                 case APPLICATION_FIRST:
+                    // 应用级订阅模式
                     migrationInvoker.migrateToApplicationFirstInvoker(newRule);
                     break;
                 case FORCE_APPLICATION:
+                    // 接口应用级别两种模式进行处理
                     success = migrationInvoker.migrateToForceApplicationInvoker(newRule);
                     break;
                 case FORCE_INTERFACE:
                 default:
+                    // 执行这里的流程  接口级别订阅模式刷新
                     success = migrationInvoker.migrateToForceInterfaceInvoker(newRule);
             }
 

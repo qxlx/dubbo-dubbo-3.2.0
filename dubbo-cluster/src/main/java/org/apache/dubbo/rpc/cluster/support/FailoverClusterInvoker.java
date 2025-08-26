@@ -53,12 +53,22 @@ public class FailoverClusterInvoker<T> extends AbstractClusterInvoker<T> {
         super(directory);
     }
 
+    /**
+     * 故障转移策略的核心逻辑实现类
+     * @param invocation
+     * @param invokers
+     * @param loadbalance
+     * @return
+     * @throws RpcException
+     */
     @Override
     @SuppressWarnings({"unchecked", "rawtypes"})
     public Result doInvoke(Invocation invocation, final List<Invoker<T>> invokers, LoadBalance loadbalance) throws RpcException {
         List<Invoker<T>> copyInvokers = invokers;
         checkInvokers(copyInvokers, invocation);
+        // 获取此处调用的方法名
         String methodName = RpcUtils.getMethodName(invocation);
+        // 通过方法名计算重试次数
         int len = calculateInvokeTimes(methodName);
         // retry loop.
         RpcException le = null; // last exception.
@@ -73,11 +83,15 @@ public class FailoverClusterInvoker<T> extends AbstractClusterInvoker<T> {
                 // check again
                 checkInvokers(copyInvokers, invocation);
             }
+            // 选择一个实例进行调用
             Invoker<T> invoker = select(loadbalance, invocation, copyInvokers, invoked);
             invoked.add(invoker);
+            // 设置rpc调用上下文
             RpcContext.getServiceContext().setInvokers((List) invoked);
             boolean success = false;
             try {
+                // 获取到最终要调用的阶段
+                // 继续走后续的流程
                 Result result = invokeWithContext(invoker, invocation);
                 if (le != null && logger.isWarnEnabled()) {
                     logger.warn(CLUSTER_FAILED_MULTIPLE_RETRIES,"failed to retry do invoke","","Although retry the method " + methodName
@@ -93,18 +107,23 @@ public class FailoverClusterInvoker<T> extends AbstractClusterInvoker<T> {
                 success = true;
                 return result;
             } catch (RpcException e) {
+                // 如果是dubbo业务异常 直接抛出
                 if (e.isBiz()) { // biz exception.
                     throw e;
                 }
+                // 其他异常不处理 可能在此循环使用
                 le = e;
             } catch (Throwable e) {
                 le = new RpcException(e.getMessage(), e);
             } finally {
+                // 没有正常返回拿到结果 调用异常的提供方地址信息记录起来
                 if (!success) {
                     providers.add(invoker.getUrl().getAddress());
                 }
             }
         }
+
+        // 重试多次的话 还是没有结果的话 直接抛出异常
         throw new RpcException(le.getCode(), "Failed to invoke the method "
                 + methodName + " in the service " + getInterface().getName()
                 + ". Tried " + len + " times of the providers " + providers

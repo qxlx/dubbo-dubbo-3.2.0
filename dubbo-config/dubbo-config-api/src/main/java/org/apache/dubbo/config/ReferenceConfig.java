@@ -604,20 +604,27 @@ public class ReferenceConfig<T> extends ReferenceConfigBase<T> {
      */
     @SuppressWarnings({"unchecked", "rawtypes"})
     private void createInvoker() {
+        // URL集合中只有1个 直接调用 refer进行远程调用
         if (urls.size() == 1) {
             URL curUrl = urls.get(0);
+            // 远程引用的核心代码
             invoker = protocolSPI.refer(interfaceClass, curUrl);
             // registry url, mesh-enable and unloadClusterRelated is true, not need Cluster.
             if (!UrlUtils.isRegistry(curUrl) &&
                     !curUrl.getParameter(UNLOAD_CLUSTER_RELATED, false)) {
+                // 这个curUrl不是注册协议的话
+                // 集群拓展器包装起来
                 List<Invoker<?>> invokers = new ArrayList<>();
                 invokers.add(invoker);
                 invoker = Cluster.getCluster(getScopeModel(), Cluster.DEFAULT).join(new StaticDirectory(curUrl, invokers), true);
             }
         } else {
+            // 说明有多个URLS
+            // 可能有注册中心地址,也可能有服务接口引用地址
             List<Invoker<?>> invokers = new ArrayList<>();
             URL registryUrl = null;
             for (URL url : urls) {
+                // 远程引用
                 // For multi-registry scenarios, it is not checked whether each referInvoker is available.
                 // Because this invoker may become available later.
                 invokers.add(protocolSPI.refer(interfaceClass, url));
@@ -628,6 +635,8 @@ public class ReferenceConfig<T> extends ReferenceConfigBase<T> {
                 }
             }
 
+            // 循环完了之后 有注册中心地址的话
+            // 创建集群包装器包装起来
             if (registryUrl != null) {
                 // registry url is available
                 // for multi-subscription scenario, use 'zone-aware' policy by default
@@ -636,12 +645,14 @@ public class ReferenceConfig<T> extends ReferenceConfigBase<T> {
                 // (RegistryDirectory, routing happens here) -> Invoker
                 invoker = Cluster.getCluster(registryUrl.getScopeModel(), cluster, false).join(new StaticDirectory(registryUrl, invokers), false);
             } else {
+                // 直连模式
                 // not a registry url, must be direct invoke.
                 if (CollectionUtils.isEmpty(invokers)) {
                     throw new IllegalArgumentException("invokers == null");
                 }
                 URL curUrl = invokers.get(0).getUrl();
                 String cluster = curUrl.getParameter(CLUSTER_KEY, Cluster.DEFAULT);
+                // 集群拓展器包装 invoker 列表
                 invoker = Cluster.getCluster(getScopeModel(), cluster).join(new StaticDirectory(curUrl, invokers), true);
             }
         }

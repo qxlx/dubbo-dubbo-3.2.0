@@ -81,11 +81,12 @@ public class DubboInvoker<T> extends AbstractInvoker<T> {
 
     @Override
     protected Result doInvoke(final Invocation invocation) throws Throwable {
+        // 获取此次调用的方法名
         RpcInvocation inv = (RpcInvocation) invocation;
         final String methodName = RpcUtils.getMethodName(invocation);
         inv.setAttachment(PATH_KEY, getUrl().getPath());
         inv.setAttachment(VERSION_KEY, version);
-
+        // 获取发送数据的客户端
         ExchangeClient currentClient;
         List<? extends ExchangeClient> exchangeClients = clientsProvider.getClients();
         if (exchangeClients.size() == 1) {
@@ -94,8 +95,9 @@ public class DubboInvoker<T> extends AbstractInvoker<T> {
             currentClient = exchangeClients.get(index.getAndIncrement() % exchangeClients.size());
         }
         try {
+            // 看看单程发送需不需要等待响应 还是发送完了之后 需要等待
             boolean isOneway = RpcUtils.isOneway(getUrl(), invocation);
-
+            // 获取超时时间 这个在配置加载顺序
             int timeout = RpcUtils.calculateTimeout(getUrl(), invocation, methodName, DEFAULT_TIMEOUT);
             if (timeout <= 0) {
                 return AsyncRpcResult.newDefaultAsyncResult(new RpcException(RpcException.TIMEOUT_TERMINATE,
@@ -115,15 +117,18 @@ public class DubboInvoker<T> extends AbstractInvoker<T> {
             }
             request.setData(inv);
             request.setVersion(Version.getProtocolVersion());
-
+            // 单程发送不需要等待响应
             if (isOneway) {
                 boolean isSent = getUrl().getMethodParameter(methodName, Constants.SENT_KEY, false);
                 request.setTwoWay(false);
                 currentClient.send(request, isSent);
                 return AsyncRpcResult.newDefaultAsyncResult(invocation);
             } else {
+                // 发送完等待响应
                 request.setTwoWay(true);
                 ExecutorService executor = getCallbackExecutor(getUrl(), inv);
+                // 客户端发送一个request请求
+                // 异步处理
                 CompletableFuture<AppResponse> appResponseFuture =
                     currentClient.request(request, timeout, executor).thenApply(AppResponse.class::cast);
                 // save for 2.6.x compatibility, for example, TraceFilter in Zipkin uses com.alibaba.xxx.FutureAdapter
