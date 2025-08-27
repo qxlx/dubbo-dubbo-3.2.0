@@ -73,13 +73,23 @@ public class ExchangeCodec extends TelnetCodec {
         return MAGIC;
     }
 
+    /**
+     * 交换信息编解码操作 将request response 对象按照dubbo协议格式编码为字节流
+     * @param channel
+     * @param buffer
+     * @param msg
+     * @throws IOException
+     */
     @Override
     public void encode(Channel channel, ChannelBuffer buffer, Object msg) throws IOException {
+        // 请求数据编码
         if (msg instanceof Request) {
             encodeRequest(channel, buffer, (Request) msg);
+            // 响应数据编码
         } else if (msg instanceof Response) {
             encodeResponse(channel, buffer, (Response) msg);
         } else {
+            // 其他类型
             super.encode(channel, buffer, msg);
         }
     }
@@ -237,16 +247,26 @@ public class ExchangeCodec extends TelnetCodec {
         throw new IllegalArgumentException("Failed to find any request match the response, response id: " + id);
     }
 
+    /**
+     * 将request对象按照dubbo协议格式编码为字节流
+     * @param channel
+     * @param buffer
+     * @param req
+     * @throws IOException
+     */
     protected void encodeRequest(Channel channel, ChannelBuffer buffer, Request req) throws IOException {
         Serialization serialization = getSerialization(channel, req);
         // header.
+        // 针对header 字节数组赋值一个 魔术值  头是16 位
         byte[] header = new byte[HEADER_LENGTH];
         // set magic number.
         Bytes.short2bytes(MAGIC, header);
 
         // set request and serialization flag.
+        // 设置序列化方式 序列化方式从
         header[2] = (byte) (FLAG_REQUEST | serialization.getContentTypeId());
 
+        // 设置请求类型 根据请求类型决定是怎样的请求类型
         if (req.isTwoWay()) {
             header[2] |= FLAG_TWOWAY;
         }
@@ -255,6 +275,7 @@ public class ExchangeCodec extends TelnetCodec {
         }
 
         // set request id.
+        // 设置请求唯一Id
         Bytes.long2bytes(req.getId(), header, 4);
 
         // encode request data.
@@ -262,6 +283,7 @@ public class ExchangeCodec extends TelnetCodec {
         buffer.writerIndex(savedWriteIndex + HEADER_LENGTH);
         ChannelBufferOutputStream bos = new ChannelBufferOutputStream(buffer);
 
+        // 构建一个输出流 根据mEvent的值将mData进行序列化转为字节数组
         if (req.isHeartbeat()) {
             // heartbeat request data is always null
             bos.write(CodecSupport.getNullBytesOf(serialization));
@@ -287,6 +309,7 @@ public class ExchangeCodec extends TelnetCodec {
         // write
         buffer.writerIndex(savedWriteIndex);
         buffer.writeBytes(header); // write header.
+        // 将序列化出来的自截数组的长度填充到保文体长度位置
         buffer.writerIndex(savedWriteIndex + HEADER_LENGTH + len);
     }
 
